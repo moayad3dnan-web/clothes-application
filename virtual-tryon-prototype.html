@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>أتيليه — تجربة افتراضية للملابس</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14120F;
+    --ink-2:#1D1A15;
+    --paper:#EDE7DD;
+    --paper-dim:#C9C2B2;
+    --berry:#A6274B;
+    --berry-soft:#C95C77;
+    --gold:#B08D4C;
+    --line:#3A362F;
+    --ok:#6B8F71;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'IBM Plex Sans Arabic',sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  .display{font-family:'Fraunces',serif;}
+
+  /* ===== Header ===== */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 28px;
+    border-bottom:1px solid var(--line);
+  }
+  .logo{
+    display:flex; align-items:center; gap:10px;
+  }
+  .logo-mark{
+    width:30px; height:30px;
+    border:1.5px solid var(--gold);
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces',serif; font-size:15px; color:var(--gold);
+  }
+  .logo-text{
+    font-family:'Fraunces',serif;
+    font-size:20px; font-weight:600;
+    letter-spacing:0.5px;
+  }
+  .logo-sub{
+    font-size:10px; color:var(--paper-dim);
+    letter-spacing:2px;
+    margin-top:1px;
+  }
+  .status-pill{
+    font-size:11px; color:var(--paper-dim);
+    border:1px solid var(--line);
+    padding:6px 14px; border-radius:999px;
+    display:flex; align-items:center; gap:7px;
+  }
+  .status-dot{width:6px;height:6px;border-radius:50%;background:var(--ok);}
+
+  /* ===== Layout ===== */
+  main{
+    display:grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap:1px;
+    background:var(--line);
+    min-height: calc(100vh - 76px);
+  }
+  @media (max-width: 860px){
+    main{grid-template-columns:1fr;}
+  }
+  section{background:var(--ink);}
+
+  /* ===== Left: Canvas / Studio ===== */
+  .studio{
+    padding:30px 28px 24px;
+    display:flex; flex-direction:column; gap:18px;
+  }
+  .studio-label{
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .eyebrow{
+    font-size:11px; letter-spacing:2px; color:var(--gold); text-transform:uppercase;
+  }
+  .studio-title{
+    font-family:'Fraunces',serif; font-size:26px; font-weight:500; margin-top:4px;
+  }
+  .step-track{
+    display:flex; gap:6px; font-size:11px; color:var(--paper-dim);
+  }
+  .step{padding:4px 10px; border:1px solid var(--line); border-radius:999px;}
+  .step.active{border-color:var(--berry); color:var(--paper); background:rgba(166,39,75,0.15);}
+
+  .canvas-wrap{
+    position:relative;
+    flex:1;
+    min-height:420px;
+    border:1px dashed var(--line);
+    border-radius:4px;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 2px, transparent 2px 14px),
+      var(--ink-2);
+  }
+  .canvas-wrap.has-photo{border-style:solid;}
+  #personImg{
+    max-width:100%; max-height:100%; object-fit:contain;
+    display:none;
+  }
+  .dropzone{
+    text-align:center; padding:30px; cursor:pointer;
+  }
+  .dropzone svg{opacity:0.55; margin-bottom:14px;}
+  .dropzone-title{font-size:15px; margin-bottom:6px;}
+  .dropzone-sub{font-size:12px; color:var(--paper-dim);}
+  #fileInput{display:none;}
+
+  #garmentOverlay{
+    position:absolute;
+    display:none;
+    cursor:grab;
+    filter: drop-shadow(0 8px 20px rgba(0,0,0,0.45));
+    touch-action:none;
+    user-select:none;
+    -webkit-user-drag:none;
+  }
+  #garmentOverlay img{width:100%; height:100%; display:block; pointer-events:none;}
+  #garmentOverlay.processing{opacity:0.3; filter:blur(1px);}
+
+  .scan-line{
+    position:absolute; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--berry-soft), transparent);
+    top:0; display:none; box-shadow:0 0 14px var(--berry-soft);
+  }
+  .scan-line.on{display:block; animation:scan 1.15s ease-in-out infinite;}
+  @keyframes scan{
+    0%{top:6%;} 50%{top:92%;} 100%{top:6%;}
+  }
+
+  .processing-tag{
+    position:absolute; bottom:14px; right:14px;
+    font-size:11px; color:var(--paper-dim);
+    background:rgba(20,18,15,0.75);
+    border:1px solid var(--line);
+    padding:6px 12px; border-radius:999px;
+    display:none; align-items:center; gap:8px;
+  }
+  .processing-tag.on{display:flex;}
+  .processing-tag .dot{
+    width:6px;height:6px;border-radius:50%;background:var(--berry-soft);
+    animation:pulse 0.9s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:0.3;} 50%{opacity:1;}}
+
+  .canvas-actions{
+    display:flex; gap:10px; flex-wrap:wrap;
+  }
+  button{
+    font-family:'IBM Plex Sans Arabic',sans-serif;
+    cursor:pointer; border:none; border-radius:3px;
+    font-size:13px;
+  }
+  .btn-primary{
+    background:var(--berry); color:var(--paper);
+    padding:13px 26px; font-weight:600;
+    flex:1;
+    transition:background 0.15s ease;
+  }
+  .btn-primary:hover{background:var(--berry-soft);}
+  .btn-primary:disabled{background:var(--line); color:var(--paper-dim); cursor:not-allowed;}
+  .btn-ghost{
+    background:transparent; color:var(--paper-dim);
+    border:1px solid var(--line);
+    padding:13px 18px;
+  }
+  .btn-ghost:hover{border-color:var(--gold); color:var(--paper);}
+
+  /* fit controls */
+  .fit-panel{
+    display:none;
+    flex-direction:column; gap:12px;
+    padding-top:4px;
+    border-top:1px solid var(--line);
+    padding-top:16px;
+  }
+  .fit-panel.on{display:flex;}
+  .fit-row{display:flex; align-items:center; gap:14px;}
+  .fit-row label{font-size:11px; color:var(--paper-dim); width:70px; flex-shrink:0;}
+  input[type=range]{
+    flex:1; accent-color:var(--gold); height:3px;
+  }
+
+  /* ===== Right: Wardrobe rail ===== */
+  .wardrobe{
+    padding:30px 28px;
+    display:flex; flex-direction:column; gap:20px;
+  }
+  .wardrobe-title{
+    font-family:'Fraunces',serif; font-size:22px; font-weight:500;
+  }
+  .wardrobe-sub{font-size:12px; color:var(--paper-dim); margin-top:4px;}
+
+  .rail-tabs{
+    display:flex; gap:4px; border-bottom:1px solid var(--line);
+  }
+  .rail-tab{
+    padding:9px 4px; margin-left:18px;
+    font-size:12.5px; color:var(--paper-dim);
+    border-bottom:2px solid transparent;
+    cursor:pointer;
+  }
+  .rail-tab.active{color:var(--paper); border-color:var(--gold);}
+
+  .garment-grid{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
+  }
+  .garment-card{
+    aspect-ratio:3/4;
+    border:1px solid var(--line);
+    border-radius:3px;
+    position:relative;
+    cursor:pointer;
+    overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color 0.15s ease, transform 0.15s ease;
+  }
+  .garment-card:hover{border-color:var(--gold); transform:translateY(-2px);}
+  .garment-card.selected{border-color:var(--berry); box-shadow:0 0 0 1px var(--berry);}
+  .garment-card svg{width:52%; height:52%;}
+  .garment-tag{
+    position:absolute; bottom:6px; right:6px; left:6px;
+    font-size:9.5px; color:var(--paper-dim);
+    text-align:center;
+    letter-spacing:0.3px;
+  }
+
+  .upload-garment{
+    border:1px dashed var(--line);
+    border-radius:3px;
+    padding:14px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    font-size:12px; color:var(--paper-dim);
+    cursor:pointer;
+  }
+  .upload-garment:hover{border-color:var(--gold); color:var(--paper);}
+  #garmentFileInput{display:none;}
+
+  .cat-picker{
+    display:none;
+    gap:6px;
+  }
+  .cat-picker.on{display:flex;}
+  .cat-chip{
+    flex:1;
+    font-size:11px; color:var(--paper-dim);
+    background:transparent;
+    border:1px solid var(--line);
+    padding:7px 4px; border-radius:3px;
+  }
+  .cat-chip.active{border-color:var(--berry); color:var(--paper); background:rgba(166,39,75,0.15);}
+
+  .ai-connect{
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:12px;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .ai-connect-row{display:flex; gap:8px;}
+  #apiKeyInput{
+    flex:1; background:var(--ink-2); border:1px solid var(--line); color:var(--paper);
+    padding:8px 10px; border-radius:3px; font-size:12px; font-family:inherit;
+  }
+  #apiKeyInput:focus{outline:none; border-color:var(--gold);}
+  .btn-ghost.small{padding:8px 14px; font-size:12px;}
+  .ai-status{font-size:11px; color:var(--paper-dim); display:flex; align-items:center; gap:6px;}
+  .ai-status .dot{width:6px;height:6px;border-radius:50%;background:var(--line);}
+  .ai-status.connected{color:var(--ok);}
+  .ai-status.connected .dot{background:var(--ok);}
+
+  .rail-note{
+    margin-top:auto;
+    font-size:11px; color:var(--paper-dim);
+    line-height:1.9;
+    border-top:1px solid var(--line);
+    padding-top:16px;
+  }
+  .rail-note b{color:var(--gold); font-weight:600;}
+
+  .auto-note{
+    display:none;
+    font-size:11px; color:var(--gold);
+    background:rgba(176,141,76,0.1);
+    border:1px solid rgba(176,141,76,0.3);
+    padding:8px 12px; border-radius:3px;
+  }
+
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-thumb{background:var(--line); border-radius:3px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">أ</div>
+    <div>
+      <div class="logo-text">أتيليه</div>
+      <div class="logo-sub">ATELIER STUDIO</div>
+    </div>
+  </div>
+  <div class="status-pill"><span class="status-dot"></span> نموذج أولي — عرض توضيحي</div>
+</header>
+
+<main>
+  <!-- LEFT: Canvas -->
+  <section class="studio">
+    <div class="studio-label">
+      <div>
+        <div class="eyebrow">استوديو التركيب</div>
+        <div class="studio-title">جرّب القطعة عليك</div>
+      </div>
+      <div class="step-track">
+        <div class="step" id="step1">١ الصورة</div>
+        <div class="step" id="step2">٢ القطعة</div>
+        <div class="step" id="step3">٣ النتيجة</div>
+      </div>
+    </div>
+
+    <div class="canvas-wrap" id="canvasWrap">
+      <div class="scan-line" id="scanLine"></div>
+      <div class="dropzone" id="dropzone">
+        <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#EDE7DD" stroke-width="1.2"><path d="M12 3v13m0 0-4-4m4 4 4-4M4 20h16"/></svg>
+        <div class="dropzone-title">ارفع صورتك</div>
+        <div class="dropzone-sub">وقفة كاملة، إضاءة واضحة، خلفية بسيطة</div>
+      </div>
+      <img id="personImg" alt="صورة المستخدم">
+      <img id="aiResultImg" alt="النتيجة" style="display:none; max-width:100%; max-height:100%; object-fit:contain; position:relative; z-index:2;">
+      <div id="garmentOverlay"><img id="garmentOverlayImg" alt="القطعة"></div>
+      <div class="processing-tag" id="processingTag"><span class="dot"></span><span id="processingText">جاري التحليل…</span></div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*">
+
+    <div class="fit-panel" id="fitPanel">
+      <div class="fit-row"><label>الحجم</label><input type="range" id="scaleSlider" min="40" max="160" value="100"></div>
+      <div class="fit-row"><label>أفقي</label><input type="range" id="xSlider" min="-100" max="100" value="0"></div>
+      <div class="fit-row"><label>رأسي</label><input type="range" id="ySlider" min="-100" max="100" value="0"></div>
+      <div class="fit-row"><label>الدوران</label><input type="range" id="rotSlider" min="-30" max="30" value="0"></div>
+    </div>
+
+    <div class="auto-note" id="autoNote"></div>
+
+    <div class="canvas-actions">
+      <button class="btn-primary" id="tryOnBtn" disabled>ركّب القطعة عليّ</button>
+      <button class="btn-ghost" id="resetBtn">إعادة تعيين</button>
+    </div>
+  </section>
+
+  <!-- RIGHT: Wardrobe -->
+  <aside class="wardrobe">
+    <div>
+      <div class="wardrobe-title">رفّ الملابس</div>
+      <div class="wardrobe-sub">اختر قطعة أو ارفع وحدة من عندك</div>
+    </div>
+
+    <div class="ai-connect">
+      <div class="ai-connect-row">
+        <input type="password" id="apiKeyInput" placeholder="Gemini API Key" autocomplete="off">
+        <button class="btn-ghost small" id="saveKeyBtn">حفظ</button>
+      </div>
+      <div class="ai-status" id="aiStatus"><span class="dot"></span><span id="aiStatusText">غير متصل — التركيب الحين تقديري يدوي</span></div>
+    </div>
+
+    <div class="rail-tabs">
+      <div class="rail-tab active" data-cat="all">الكل</div>
+      <div class="rail-tab" data-cat="top">علوي</div>
+      <div class="rail-tab" data-cat="outer">خارجي</div>
+      <div class="rail-tab" data-cat="dress">ثوب</div>
+    </div>
+
+    <div class="garment-grid" id="garmentGrid"></div>
+
+    <div class="upload-garment" id="uploadGarment">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9C2B2" stroke-width="1.6"><path d="M12 3v13m0 0-4-4m4 4 4-4M4 20h16"/></svg>
+      ارفع قطعة من جهازك
+    </div>
+    <input type="file" id="garmentFileInput" accept="image/*">
+
+    <div class="cat-picker" id="uploadCatPicker">
+      <button type="button" class="cat-chip active" data-cat="top">علوي</button>
+      <button type="button" class="cat-chip" data-cat="outer">خارجي</button>
+      <button type="button" class="cat-chip" data-cat="dress">طويل</button>
+    </div>
+
+    <div class="rail-note">
+      إذا ضفت مفتاح <b>Gemini API</b> فوق، زر "ركّب" يرسل صورتك والقطعة لنموذج <b>Gemini 2.5 Flash Image</b> ويرجّع صورة واحدة مركّبة فعليًا (إضاءة، ظل، انحناء قماش). بدون مفتاح، يستخدم تموضع تقديري يدوي فقط. المفتاح يُخزّن بمتصفحك محليًا ولا يوصل لأي سيرفر ثاني.
+    </div>
+  </aside>
+</main>
+
+<script>
+  // ---- Gemini API connection (real AI compositing) ----
+  const apiKeyInput = document.getElementById('apiKeyInput');
+  const saveKeyBtn = document.getElementById('saveKeyBtn');
+  const aiStatus = document.getElementById('aiStatus');
+  const aiStatusText = document.getElementById('aiStatusText');
+  const aiResultImg = document.getElementById('aiResultImg');
+
+  let geminiKey = localStorage.getItem('atelier_gemini_key') || '';
+  function refreshAIStatus(){
+    if(geminiKey){
+      aiStatusText.textContent = 'متصل — التركيب راح يستخدم AI حقيقي';
+      aiStatus.classList.add('connected');
+    }else{
+      aiStatusText.textContent = 'غير متصل — التركيب الحين تقديري يدوي';
+      aiStatus.classList.remove('connected');
+    }
+  }
+  apiKeyInput.value = geminiKey;
+  refreshAIStatus();
+  saveKeyBtn.addEventListener('click', ()=>{
+    geminiKey = apiKeyInput.value.trim();
+    if(geminiKey) localStorage.setItem('atelier_gemini_key', geminiKey);
+    else localStorage.removeItem('atelier_gemini_key');
+    refreshAIStatus();
+  });
+
+  function dataUrlToInline(dataUrl){
+    const [header, data] = dataUrl.split(',');
+    const m = header.match(/data:(.*?);base64/);
+    return { mimeType: m ? m[1] : 'image/png', data };
+  }
+
+  async function callGeminiTryOn(personDataUrl, garmentDataUrl){
+    const person = dataUrlToInline(personDataUrl);
+    const garment = dataUrlToInline(garmentDataUrl);
+    const prompt = "Take the person shown in the first image and the garment shown in the second image. Edit the first photo so the person is realistically wearing that exact garment: match their pose, body proportions, perspective, lighting and shadows, and let the fabric drape naturally. Keep the person's face, identity, body, pose and background unchanged. Output only the final edited photo, no text.";
+
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'x-goog-api-key': geminiKey },
+      body: JSON.stringify({
+        contents:[{ parts:[
+          {inlineData:{mimeType:person.mimeType, data:person.data}},
+          {inlineData:{mimeType:garment.mimeType, data:garment.data}},
+          {text:prompt}
+        ]}],
+        generationConfig:{ responseModalities:["TEXT","IMAGE"] }
+      })
+    });
+
+    if(!res.ok){
+      const errText = await res.text().catch(()=> '');
+      throw new Error(`HTTP ${res.status} ${errText.slice(0,180)}`);
+    }
+    const json = await res.json();
+    const parts = json?.candidates?.[0]?.content?.parts || [];
+    const imgPart = parts.find(p => p.inlineData || p.inline_data);
+    if(!imgPart) throw new Error('ما رجع النموذج صورة');
+    const inline = imgPart.inlineData || imgPart.inline_data;
+    const mime = inline.mimeType || inline.mime_type || 'image/png';
+    return `data:${mime};base64,${inline.data}`;
+  }
+
+  function showAIResult(dataUrl){
+    aiResultImg.src = dataUrl;
+    aiResultImg.style.display = 'block';
+    personImg.style.display = 'none';
+    overlay.style.display = 'none';
+    fitPanel.classList.remove('on');
+  }
+
+  // ---- Auto placement heuristic (proportion-based, no external ML needed) ----
+  // Assumes a standard full-body standing photo (as prompted in the dropzone).
+  function computeAutoPlacement(cat){
+    const imgRect = personImg.getBoundingClientRect();
+    const wrapRect = canvasWrap.getBoundingClientRect();
+    const offsetX = imgRect.left - wrapRect.left;
+    const offsetY = imgRect.top - wrapRect.top;
+    const W = imgRect.width, H = imgRect.height;
+
+    const shoulderY = offsetY + H*0.17;
+    const hipY = offsetY + H*0.47;
+    const ankleY = offsetY + H*0.94;
+    const centerX = offsetX + W*0.5;
+    const shoulderWidth = W*0.30;
+    const torsoHeight = hipY - shoulderY;
+
+    let width=shoulderWidth*2.0, height=torsoHeight*1.35, topY=shoulderY-torsoHeight*0.14;
+    if(cat==='outer'){ width=shoulderWidth*2.25; height=torsoHeight*1.55; topY=shoulderY-torsoHeight*0.14; }
+    if(cat==='dress'){ width=shoulderWidth*2.1; height=ankleY-shoulderY+torsoHeight*0.1; topY=shoulderY-torsoHeight*0.10; }
+
+    return { left: centerX-width/2, top: topY, width, height, rotation: 0 };
+  }
+
+  // ---- Background removal for uploaded garment photos (client-side, no network) ----
+  // Flood-fills from the image border, removing pixels close to the sampled
+  // background color, then crops to the remaining opaque bounding box.
+  function removeBackground(dataUrl){
+    return new Promise((resolve)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const w = img.naturalWidth, h = img.naturalHeight;
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img,0,0);
+        const imageData = ctx.getImageData(0,0,w,h);
+        const data = imageData.data;
+
+        function idx(x,y){ return (y*w+x)*4; }
+        const corners = [idx(0,0), idx(w-1,0), idx(0,h-1), idx(w-1,h-1)];
+        let br=0,bg=0,bb=0;
+        corners.forEach(i=>{ br+=data[i]; bg+=data[i+1]; bb+=data[i+2]; });
+        br/=4; bg/=4; bb/=4;
+
+        const threshold = 34;
+        const visited = new Uint8Array(w*h);
+        const stack = [];
+        for(let x=0;x<w;x++){ stack.push(x,0); stack.push(x,h-1); }
+        for(let y=0;y<h;y++){ stack.push(0,y); stack.push(w-1,y); }
+
+        function dist(i){
+          const dr=data[i]-br, dg=data[i+1]-bg, db=data[i+2]-bb;
+          return Math.sqrt(dr*dr+dg*dg+db*db);
+        }
+
+        while(stack.length){
+          const y = stack.pop(), x = stack.pop();
+          if(x<0||y<0||x>=w||y>=h) continue;
+          const p = y*w+x;
+          if(visited[p]) continue;
+          visited[p]=1;
+          const i = p*4;
+          if(dist(i) < threshold){
+            data[i+3] = 0;
+            stack.push(x+1,y, x-1,y, x,y+1, x,y-1);
+          }
+        }
+
+        ctx.putImageData(imageData,0,0);
+
+        let minX=w, minY=h, maxX=0, maxY=0, found=false;
+        for(let y=0;y<h;y++){
+          for(let x=0;x<w;x++){
+            if(data[idx(x,y)+3] !== 0){
+              found=true;
+              if(x<minX)minX=x; if(x>maxX)maxX=x;
+              if(y<minY)minY=y; if(y>maxY)maxY=y;
+            }
+          }
+        }
+        if(!found){ resolve(dataUrl); return; }
+        const pad=2;
+        minX=Math.max(0,minX-pad); minY=Math.max(0,minY-pad);
+        maxX=Math.min(w-1,maxX+pad); maxY=Math.min(h-1,maxY+pad);
+        const cw=maxX-minX+1, ch=maxY-minY+1;
+        const cropCanvas = document.createElement('canvas');
+        cropCanvas.width=cw; cropCanvas.height=ch;
+        cropCanvas.getContext('2d').drawImage(canvas, minX,minY,cw,ch, 0,0,cw,ch);
+        resolve(cropCanvas.toDataURL('image/png'));
+      };
+      img.onerror = ()=> resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
+  // ---- Garment library (SVG-drawn placeholders, category tagged) ----
+  const garments = [
+    {id:1, cat:'top', label:'قميص أبيض', color:'#EDE7DD', type:'shirt'},
+    {id:2, cat:'top', label:'تيشيرت أسود', color:'#2A2723', type:'tee'},
+    {id:3, cat:'outer', label:'جاكيت جلد', color:'#3A2A22', type:'jacket'},
+    {id:4, cat:'dress', label:'ثوب خليجي', color:'#0F1B2B', type:'thobe'},
+    {id:5, cat:'top', label:'بولو كحلي', color:'#1B2A44', type:'polo'},
+    {id:6, cat:'outer', label:'معطف بيج', color:'#B7A283', type:'coat'},
+  ];
+
+  function garmentSVG(g){
+    const c = g.color;
+    if(g.type==='shirt'||g.type==='polo'||g.type==='tee'){
+      return `<svg viewBox="0 0 100 100"><path d="M30 15 L15 28 L22 40 L30 34 L30 90 L70 90 L70 34 L78 40 L85 28 L70 15 L60 22 L40 22 Z" fill="${c}" stroke="#3A362F" stroke-width="1.5"/></svg>`;
+    }
+    if(g.type==='jacket'||g.type==='coat'){
+      return `<svg viewBox="0 0 100 100"><path d="M28 14 L12 26 L20 40 L28 33 L28 90 L48 90 L50 45 L52 90 L72 90 L72 33 L80 40 L88 26 L72 14 L58 20 L50 30 L42 20 Z" fill="${c}" stroke="#3A362F" stroke-width="1.5"/></svg>`;
+    }
+    return `<svg viewBox="0 0 100 100"><path d="M35 12 L25 20 L30 30 L38 26 L36 92 L64 92 L62 26 L70 30 L75 20 L65 12 L58 18 L42 18 Z" fill="${c}" stroke="#3A362F" stroke-width="1.5"/></svg>`;
+  }
+
+  const grid = document.getElementById('garmentGrid');
+  let selectedGarment = null;
+
+  function renderGrid(cat='all'){
+    grid.innerHTML = '';
+    garments.filter(g => cat==='all' || g.cat===cat).forEach(g=>{
+      const card = document.createElement('div');
+      card.className = 'garment-card';
+      card.dataset.id = g.id;
+      card.innerHTML = garmentSVG(g) + `<div class="garment-tag">${g.label}</div>`;
+      card.addEventListener('click', ()=> selectGarment(g, card));
+      grid.appendChild(card);
+    });
+  }
+  renderGrid();
+
+  document.querySelectorAll('.rail-tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.rail-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      renderGrid(tab.dataset.cat);
+    });
+  });
+
+  function svgToDataUrl(svgMarkup){
+    const full = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${svgMarkup.match(/<path[^>]*>/)[0]}</svg>`;
+    return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(full)));
+  }
+
+  function selectGarment(g, cardEl){
+    document.querySelectorAll('.garment-card').forEach(c=>c.classList.remove('selected'));
+    cardEl.classList.add('selected');
+    selectedGarment = g;
+    document.getElementById('step2').classList.add('active');
+    updateTryOnAvailability();
+  }
+
+  // ---- Person photo upload ----
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const personImg = document.getElementById('personImg');
+  const canvasWrap = document.getElementById('canvasWrap');
+  const autoNote = document.getElementById('autoNote');
+
+  dropzone.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      personImg.src = ev.target.result;
+      personImg.style.display = 'block';
+      dropzone.style.display = 'none';
+      canvasWrap.classList.add('has-photo');
+      document.getElementById('step1').classList.add('active');
+      updateTryOnAvailability();
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ---- Custom garment upload ----
+  const uploadGarment = document.getElementById('uploadGarment');
+  const uploadGarmentDefaultHTML = uploadGarment.innerHTML;
+  const garmentFileInput = document.getElementById('garmentFileInput');
+  const uploadCatPicker = document.getElementById('uploadCatPicker');
+
+  uploadGarment.addEventListener('click', ()=> garmentFileInput.click());
+  garmentFileInput.addEventListener('change', e=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = async ev=>{
+      uploadGarment.textContent = 'جاري إزالة الخلفية…';
+      let cleaned;
+      try{
+        cleaned = await removeBackground(ev.target.result);
+      }catch(err){
+        cleaned = ev.target.result;
+      }
+      uploadGarment.innerHTML = uploadGarmentDefaultHTML;
+      selectedGarment = {id:'custom', label:'قطعتك', cat:'top', custom:true, dataUrl: cleaned};
+      document.querySelectorAll('.garment-card').forEach(c=>c.classList.remove('selected'));
+      document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('active'));
+      document.querySelector('.cat-chip[data-cat="top"]').classList.add('active');
+      uploadCatPicker.classList.add('on');
+      document.getElementById('step2').classList.add('active');
+      updateTryOnAvailability();
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.querySelectorAll('.cat-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('active'));
+      chip.classList.add('active');
+      if(selectedGarment && selectedGarment.custom){
+        selectedGarment.cat = chip.dataset.cat;
+      }
+    });
+  });
+
+  function updateTryOnAvailability(){
+    const btn = document.getElementById('tryOnBtn');
+    btn.disabled = !(personImg.style.display === 'block' && selectedGarment);
+  }
+
+  // ---- Try-on simulation ----
+  const tryOnBtn = document.getElementById('tryOnBtn');
+  const scanLine = document.getElementById('scanLine');
+  const processingTag = document.getElementById('processingTag');
+  const processingText = document.getElementById('processingText');
+  const overlay = document.getElementById('garmentOverlay');
+  const overlayImg = document.getElementById('garmentOverlayImg');
+  const fitPanel = document.getElementById('fitPanel');
+
+  const steps = ['جاري تحليل الصورة…','تحديد موضع الجسم…','حساب المقاس المناسب…','تركيب القطعة…'];
+
+  tryOnBtn.addEventListener('click', performTryOn);
+
+  async function performTryOn(){
+    tryOnBtn.disabled = true;
+    aiResultImg.style.display = 'none';
+    personImg.style.display = 'block';
+    scanLine.classList.add('on');
+    processingTag.classList.add('on');
+    overlay.classList.add('processing');
+    autoNote.style.display = 'none';
+
+    const cat = selectedGarment.cat;
+    const garmentSrc = selectedGarment.custom ? selectedGarment.dataUrl : svgToDataUrl(garmentSVG(selectedGarment));
+
+    if(geminiKey){
+      try{
+        processingText.textContent = 'جاري إرسال الصور لنموذج الذكاء الاصطناعي…';
+        const resultUrl = await callGeminiTryOn(personImg.src, garmentSrc);
+        scanLine.classList.remove('on');
+        processingTag.classList.remove('on');
+        overlay.classList.remove('processing');
+        showAIResult(resultUrl);
+        tryOnBtn.disabled = false;
+        tryOnBtn.textContent = 'أعد التركيب';
+        return;
+      }catch(err){
+        console.error(err);
+        autoNote.textContent = 'تعذر الاتصال بنموذج AI (' + err.message + ') — رجعنا للتركيب التقديري اليدوي.';
+        autoNote.style.display = 'block';
+      }
+    }
+
+    for(const s of steps){
+      processingText.textContent = s;
+      await new Promise(r=>setTimeout(r,220));
+    }
+
+    overlayImg.src = garmentSrc;
+    const placement = computeAutoPlacement(cat);
+
+    scanLine.classList.remove('on');
+    processingTag.classList.remove('on');
+    overlay.classList.remove('processing');
+
+    baseLeft = placement.left;
+    baseTop = placement.top;
+    baseW = placement.width;
+    baseH = placement.height;
+
+    scaleSlider.value = 100;
+    xSlider.value = 0;
+    ySlider.value = 0;
+    rotSlider.value = 0;
+    applyTransform();
+    overlay.style.display = 'block';
+
+    if(autoNote.style.display === 'none'){
+      autoNote.textContent = geminiKey
+        ? 'التموضع تقديري (خطة احتياطية) — راجع رسالة الخطأ فوق.'
+        : 'التموضع تلقائي بناءً على تناسب الجسم القياسي — أضف مفتاح Gemini API فوق لتفعيل تركيب حقيقي بالذكاء الاصطناعي.';
+      autoNote.style.display = 'block';
+    }
+
+    document.getElementById('step3').classList.add('active');
+    fitPanel.classList.add('on');
+    tryOnBtn.disabled = false;
+    tryOnBtn.textContent = 'أعد التركيب';
+  }
+
+  // ---- Fit controls ----
+  let baseLeft=0, baseTop=0, baseW=0, baseH=0;
+  const scaleSlider = document.getElementById('scaleSlider');
+  const xSlider = document.getElementById('xSlider');
+  const ySlider = document.getElementById('ySlider');
+  const rotSlider = document.getElementById('rotSlider');
+
+  function applyTransform(){
+    const scale = scaleSlider.value/100;
+    const dx = xSlider.value/100 * 60;
+    const dy = ySlider.value/100 * 60;
+    const rot = rotSlider.value;
+    overlay.style.width = (baseW*scale) + 'px';
+    overlay.style.height = (baseH*scale) + 'px';
+    overlay.style.left = (baseLeft + dx - (baseW*scale-baseW)/2) + 'px';
+    overlay.style.top = (baseTop + dy - (baseH*scale-baseH)/2) + 'px';
+    overlay.style.transform = `rotate(${rot}deg)`;
+  }
+  [scaleSlider,xSlider,ySlider,rotSlider].forEach(s=> s.addEventListener('input', applyTransform));
+
+  // ---- Drag to reposition overlay ----
+  let dragging=false, startX=0, startY=0, startLeft=0, startTop=0;
+  overlay.addEventListener('pointerdown', e=>{
+    dragging = true;
+    overlay.style.cursor='grabbing';
+    startX = e.clientX; startY = e.clientY;
+    startLeft = parseFloat(overlay.style.left);
+    startTop = parseFloat(overlay.style.top);
+    overlay.setPointerCapture(e.pointerId);
+  });
+  overlay.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    overlay.style.left = (startLeft + (e.clientX-startX)) + 'px';
+    overlay.style.top = (startTop + (e.clientY-startY)) + 'px';
+    baseLeft = parseFloat(overlay.style.left);
+    baseTop = parseFloat(overlay.style.top);
+  });
+  overlay.addEventListener('pointerup', e=>{
+    dragging=false; overlay.style.cursor='grab';
+  });
+
+  // ---- Reset ----
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    personImg.style.display='none'; personImg.src='';
+    aiResultImg.style.display='none'; aiResultImg.src='';
+    dropzone.style.display='block';
+    canvasWrap.classList.remove('has-photo');
+    overlay.style.display='none';
+    fitPanel.classList.remove('on');
+    autoNote.style.display='none';
+    uploadCatPicker.classList.remove('on');
+    selectedGarment=null;
+    document.querySelectorAll('.garment-card').forEach(c=>c.classList.remove('selected'));
+    document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+    tryOnBtn.textContent='ركّب القطعة عليّ';
+    tryOnBtn.disabled=true;
+    scaleSlider.value=100; xSlider.value=0; ySlider.value=0; rotSlider.value=0;
+    fileInput.value=''; garmentFileInput.value='';
+  });
+</script>
+
+</body>
+</html>
